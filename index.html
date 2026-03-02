@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento RB Jipa</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #fff; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #00d4ff; text-transform: uppercase; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+        .card { background: #161616; padding: 25px; border-radius: 12px; border-bottom: 4px solid #00d4ff; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .card h3 { font-size: 0.9rem; color: #888; margin: 0; }
+        .card p { font-size: 1.8rem; font-weight: bold; margin: 15px 0 0; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <h1>Monitoramento RB Jipa</h1>
+    
+    <div class="grid">
+        <div class="card">
+            <h3>CPU</h3>
+            <p id="cpu-val">--</p>
+        </div>
+        <div class="card">
+            <h3>Memória Livre</h3>
+            <p id="mem-val">--</p>
+        </div>
+        <div class="card">
+            <h3>Uptime</h3>
+            <p id="uptime-val" style="font-size: 1.2rem;">--</p>
+        </div>
+        <div class="card">
+            <h3>Ativos</h3>
+            <p id="active-val">--</p>
+        </div>
+    </div>
+
+    <script>
+        // Link de exportação direta em CSV da sua planilha
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/1Ym-hTlTIDfiqxxo_PPiecmtSp0-4EshB02UHNsm_PWw/export?format=csv';
+
+        async function fetchData() {
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    const data = results.data.filter(row => row.Hostname);
+                    const lastEntry = data[data.length - 1]; // Pega a última linha (mais recente)
+                    
+                    if (lastEntry) {
+                        document.getElementById('cpu-val').innerText = lastEntry['CPU %'] + '%';
+                        document.getElementById('mem-val').innerText = lastEntry['Memória Livre (MB)'] + ' MB';
+                        document.getElementById('uptime-val').innerText = lastEntry['Uptime'];
+                        document.getElementById('active-val').innerText = lastEntry['Conexões Ativas'] || '0';
+                    }
+                }
+            });
+        }
+
+        // Atualiza a cada 30 segundos
+        setInterval(fetchData, 30000);
+        fetchData();
+    </script>
+</body>
+</html>
