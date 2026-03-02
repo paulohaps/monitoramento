@@ -6,61 +6,96 @@
     <title>Monitoramento RB Jipa</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #fff; text-align: center; margin: 0; padding: 20px; }
-        h1 { color: #00d4ff; text-transform: uppercase; margin-bottom: 30px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
-        .card { background: #161616; padding: 25px; border-radius: 12px; border-bottom: 4px solid #00d4ff; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .card h3 { font-size: 0.9rem; color: #888; margin: 0; }
-        .card p { font-size: 1.8rem; font-weight: bold; margin: 15px 0 0; color: #fff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #38bdf8; text-transform: uppercase; margin-bottom: 30px; letter-spacing: 1px; font-size: 2rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: #1e293b; padding: 25px; border-radius: 12px; border-bottom: 4px solid #38bdf8; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .card h3 { font-size: 1rem; color: #94a3b8; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card p { font-size: 2rem; font-weight: bold; margin: 15px 0 0; color: #fff; }
+        .ping-card { border-bottom-color: #fbbf24; }
+        .ping-card h3 { color: #fbbf24; }
+        .disk-card { border-bottom-color: #a78bfa; }
+        .disk-card h3 { color: #a78bfa; }
+        .last-update { margin-top: 30px; font-size: 0.9rem; color: #64748b; }
     </style>
 </head>
 <body>
 
-    <h1>Monitoramento RB Jipa</h1>
+    <h1>Dashboard Operacional - RB Jipa</h1>
     
     <div class="grid">
         <div class="card">
-            <h3>CPU</h3>
-            <p id="cpu-val">--</p>
+            <h3>CPU Load</h3>
+            <p id="cpu-val">--%</p>
         </div>
         <div class="card">
             <h3>Memória Livre</h3>
-            <p id="mem-val">--</p>
+            <p id="mem-val">-- MB</p>
+        </div>
+        <div class="card disk-card">
+            <h3>Disco Livre</h3>
+            <p id="disk-val">-- MB</p>
         </div>
         <div class="card">
             <h3>Uptime</h3>
-            <p id="uptime-val" style="font-size: 1.2rem;">--</p>
+            <p id="uptime-val" style="font-size: 1.4rem;">--</p>
         </div>
         <div class="card">
-            <h3>Ativos</h3>
+            <h3>Conexões Ativas</h3>
             <p id="active-val">--</p>
+        </div>
+        <div class="card ping-card">
+            <h3>Latência (Google)</h3>
+            <p id="ping-val">-- ms</p>
         </div>
     </div>
 
+    <div class="last-update" id="update-time">Aguardando dados...</div>
+
     <script>
-        // Link de exportação direta em CSV da sua planilha
+        // Link direto da sua planilha em formato CSV
         const csvUrl = 'https://docs.google.com/spreadsheets/d/1Ym-hTlTIDfiqxxo_PPiecmtSp0-4EshB02UHNsm_PWw/export?format=csv';
 
         async function fetchData() {
             Papa.parse(csvUrl, {
                 download: true,
-                header: true,
+                header: false, // Lê por posição, mais seguro!
                 complete: function(results) {
-                    const data = results.data.filter(row => row.Hostname);
-                    const lastEntry = data[data.length - 1]; // Pega a última linha (mais recente)
+                    const data = results.data;
+                    
+                    // Pega a última linha que tenha conteúdo (ignora linhas vazias no fim do arquivo)
+                    let lastEntry = null;
+                    for (let i = data.length - 1; i >= 0; i--) {
+                        if (data[i] && data[i].length >= 7 && data[i][1]) {
+                            lastEntry = data[i];
+                            break;
+                        }
+                    }
                     
                     if (lastEntry) {
-                        document.getElementById('cpu-val').innerText = lastEntry['CPU %'] + '%';
-                        document.getElementById('mem-val').innerText = lastEntry['Memória Livre (MB)'] + ' MB';
-                        document.getElementById('uptime-val').innerText = lastEntry['Uptime'];
-                        document.getElementById('active-val').innerText = lastEntry['Conexões Ativas'] || '0';
+                        // Mapeamento das colunas (0: Data, 1: Hostname, 2: CPU, 3: Mem, 4: Disco, 5: Uptime, 6: Users, 7: Ping)
+                        document.getElementById('cpu-val').innerText = (lastEntry[2] || '0') + '%';
+                        document.getElementById('mem-val').innerText = (lastEntry[3] || '0') + ' MB';
+                        document.getElementById('disk-val').innerText = (lastEntry[4] || '0') + ' MB';
+                        document.getElementById('uptime-val').innerText = lastEntry[5] || '--';
+                        document.getElementById('active-val').innerText = lastEntry[6] || '0';
+                        
+                        let ping = lastEntry[7] || '--';
+                        // Adiciona 'ms' apenas se o valor não for a palavra "Timeout"
+                        if(ping !== 'Timeout' && ping !== '--' && !ping.includes('ms')) {
+                            ping += ' ms';
+                        }
+                        document.getElementById('ping-val').innerText = ping;
+
+                        document.getElementById('update-time').innerText = 'Última atualização: ' + (lastEntry[0] || new Date().toLocaleTimeString());
                     }
                 }
             });
         }
 
-        // Atualiza a cada 30 segundos
-        setInterval(fetchData, 10000);
+        // Atualiza o dashboard a cada 30 segundos
+        setInterval(fetchData, 30000);
         fetchData();
     </script>
 </body>
