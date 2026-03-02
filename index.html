@@ -38,6 +38,15 @@
     </div>
 
     <script>
+        <div class="card" style="border-bottom-color: #ffcc00;">
+    <h3>Ping Médio (Google)</h3>
+    <p id="ping-val">-- ms</p>
+</div>
+
+<script>
+    // No seu JS, dentro da função que atualiza os dados:
+    document.getElementById('ping-val').innerText = lastEntry['latency'] + ' ms';
+</script>
         // Link de exportação direta em CSV da sua planilha
         const csvUrl = 'https://docs.google.com/spreadsheets/d/1Ym-hTlTIDfiqxxo_PPiecmtSp0-4EshB02UHNsm_PWw/export?format=csv';
 
@@ -60,7 +69,7 @@
         }
 
         // Atualiza a cada 30 segundos
-        setInterval(fetchData, 30000);
+        setInterval(fetchData, 10000);
         fetchData();
     </script>
 </body>
